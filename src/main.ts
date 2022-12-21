@@ -69,39 +69,6 @@ const validNode = (p: Point): boolean => {
     return p.x >= 0 && p.x <= columns - 1 && p.y >= 0 && p.y <= rows - 1;
 }
 
-const findNearByNodes = (start: Square, end: Square, check: Square): Square[] => {
-    const x = check.x;
-    const y = check.y;
-
-    const points: Point[] = [
-      /*leftCenter*/  { x: x - 1, y },
-      /*leftUpper*/   { x: x - 1, y: y - 1 },
-      /*upper*/       { x, y: y - 1 },
-      /*rightUpper*/  { x: x + 1, y: y - 1 },
-      /*right*/       { x: x + 1, y },
-      /*rightBottom*/ { x: x + 1, y: y + 1 },
-      /*bottom*/      { x, y: y + 1 },
-      /*leftBottom*/  { x: x - 1, y: y + 1 }
-    ]
-
-    const validPoints = points.filter(p => validNode(p));
-    const actualNodes = validPoints.map(p => grid[p.y][p.x]);
-    // const nodes = actualNodes.filter(s => !s.isClosed);
-
-    // nodes.forEach(x => {
-    //     x.hCost = distBetween(x.centerPoint, start.centerPoint);
-    //     x.gCost = distBetween(x.centerPoint, end.centerPoint);
-    //     x.setIsPossible();
-    // });
-
-    // const minFCost = Math.min(...nodes.map(x => x.fCost));
-    // const nodeWithMin = nodes.find(x => Math.abs(minFCost - x.fCost) < .1);
-
-    // nodeWithMin?.setType(SquareTypes.path);
-    // console.log(nodeWithMin);
-    return actualNodes;
-}
-
 const findNeigbors = (check: Square): Square[] => {
     const x = check.x;
     const y = check.y;
@@ -119,19 +86,6 @@ const findNeigbors = (check: Square): Square[] => {
 
     const validPoints = points.filter(p => validNode(p));
     const actualNodes = validPoints.map(p => grid[p.y][p.x]);
-    // const nodes = actualNodes.filter(s => !s.isClosed);
-
-    // nodes.forEach(x => {
-    //     x.hCost = distBetween(x.centerPoint, start.centerPoint);
-    //     x.gCost = distBetween(x.centerPoint, end.centerPoint);
-    //     x.setIsPossible();
-    // });
-
-    // const minFCost = Math.min(...nodes.map(x => x.fCost));
-    // const nodeWithMin = nodes.find(x => Math.abs(minFCost - x.fCost) < .1);
-
-    // nodeWithMin?.setType(SquareTypes.path);
-    // console.log(nodeWithMin);
     return actualNodes;
 }
 
@@ -140,19 +94,8 @@ const findNodeWithLowestFCost = (nodes: Square[]): Square | undefined => {
     return nodes.find(x => Math.abs(minFCost - x.fCost) < .1);
 }
 
-const flattenedGrid = (): Square[] => {
-    const tempGrid: Square[] = [];
-    for (let i = 0; i <= grid.length - 1; i++) {
-        for (let j = 0; j <= grid[i].length - 1; j++) {
-            tempGrid.push(grid[i][j]);
-        }
-    }
-    return tempGrid;
-}
 
 const search = () => {
-    const input: HTMLInputElement = document.getElementById('numberBox') as HTMLInputElement;
-    const valueFromInput = parseInt(input.value);
     let start: Square | undefined;
     let end: Square | undefined;
     for (let i = 0; i <= grid.length - 1; i++) {
@@ -218,7 +161,6 @@ const search = () => {
         }
     });
 }
-
 
 canvas.addEventListener('mousemove', (event: MouseEvent) => {
     for (let i = 0; i <= grid.length - 1; i++) {
