@@ -1,10 +1,12 @@
 import { Point } from "./interfaces/point";
+import { algoTypes } from "./models/algo-types";
 import { Node } from "./models/node";
 import { NodeTypes } from "./models/node-type";
 
 const canvas: HTMLCanvasElement = document.getElementById('canvas') as HTMLCanvasElement;
 const ctx: CanvasRenderingContext2D = canvas.getContext('2d') as CanvasRenderingContext2D;
-const select: HTMLSelectElement = document.getElementById('standard-select') as HTMLSelectElement;
+const algorithmSelect: HTMLSelectElement = document.getElementById('algorithm-select') as HTMLSelectElement;
+const drawingToolSelect: HTMLSelectElement = document.getElementById('drawing-tool-select') as HTMLSelectElement;
 const startButton: HTMLButtonElement = document.getElementById('startButton') as HTMLButtonElement;
 const clearButton: HTMLButtonElement = document.getElementById('clearButton') as HTMLButtonElement;
 
@@ -36,12 +38,23 @@ const draw = () => {
             ctx.fillRect(node.x * dim + offset / 2, node.y * dim + offset / 2, node.dim - offset, node.dim - offset)
             ctx.strokeStyle = 'black';
             ctx.strokeRect(node.x * dim, node.y * dim, node.dim, node.dim);
-            ctx.font = '16px Arial';
-            ctx.strokeText(node.fCost.toString(), node.x * dim + dim / 2.5, node.y * dim + dim / 1.2)
-            ctx.font = '16px Arial'
-            ctx.strokeText(node.gCost.toString(), node.x * dim + dim / 7, node.y * dim + dim / 4)
-            ctx.font = '16px Arial'
-            ctx.strokeText(node.hCost.toString(), node.x * dim + dim / 1.6, node.y * dim + dim / 4)
+            const algo: algoTypes = parseInt(algorithmSelect.value);
+            switch (algo) {
+                case algoTypes.aStar:
+                    ctx.font = '16px Arial';
+                    ctx.strokeText(node.fCost.toString(), node.x * dim + dim / 2.5, node.y * dim + dim / 1.2)
+                    ctx.font = '16px Arial'
+                    ctx.strokeText(node.gCost.toString(), node.x * dim + dim / 7, node.y * dim + dim / 4)
+                    ctx.font = '16px Arial'
+                    ctx.strokeText(node.hCost.toString(), node.x * dim + dim / 1.6, node.y * dim + dim / 4)
+                    break;
+                case algoTypes.dijkstra:
+                default:
+                    ctx.font = '16px Arial'
+                    ctx.strokeText(Number.isFinite(node.hCost) ? node.hCost.toString() : '0', node.x * dim + dim / 2.5, node.y * dim + dim / 2)
+                    break;
+            }
+
         }
     }
 }
@@ -70,6 +83,18 @@ const validNode = (p: Point): boolean => {
     return p.x >= 0 && p.x <= columns - 1 && p.y >= 0 && p.y <= rows - 1;
 }
 
+const getNeiboringPoints = (point: Point): Point[] => [
+        /*leftCenter*/  { x: point.x - 1, y: point.y },
+        /*leftUpper*/   { x: point.x - 1, y: point.y - 1 },
+        /*upper*/       { x: point.x, y: point.y - 1 },
+        /*rightUpper*/  { x: point.x + 1, y: point.y - 1 },
+        /*right*/       { x: point.x + 1, y: point.y },
+        /*rightBottom*/ { x: point.x + 1, y: point.y + 1 },
+        /*bottom*/      { x: point.x, y: point.y + 1 },
+        /*leftBottom*/  { x: point.x - 1, y: point.y + 1 }
+]
+
+
 const findNeigbors = (check: Node): Node[] => {
     const x = check.x;
     const y = check.y;
@@ -96,16 +121,22 @@ const findNodeWithLowestFCost = (nodes: Node[]): Node | undefined => {
 }
 
 const getParents = (node: Node): Node[] => {
-    let currentParent = node.parent;
     const nodes: Node[] = [];
-    while (currentParent) {
-        nodes.push(currentParent);
-        currentParent = currentParent.parent;
+    let i = 0;
+    let currentNode = node.parent;
+    while (currentNode && !currentNode.isStart) {
+        nodes.push(currentNode);
+        currentNode = currentNode.parent;
+        if (i > 10000) {
+            console.log('get parents hit 10000')
+            break;
+        }
+        i++;
     }
     return nodes;
 }
 
-const search = () => {
+const aStar = () => {
 
     let start: Node | undefined;
     let end: Node | undefined;
@@ -128,10 +159,10 @@ const search = () => {
         return;
     }
 
-    
+
     const open: Node[] = [];
     const closed: Node[] = [];
-    
+
     // start by adding the first node
     open.push(start);
 
@@ -170,7 +201,7 @@ const search = () => {
             }
             break;
         }
-        
+
         // get the neighbors of this node
         //  [N][N][N]
         //  [N]{C}[N]
@@ -186,15 +217,15 @@ const search = () => {
                 // if lower then update the gCost to the lower value
                 // set the parent of the neigbor to the current node
                 if (open.indexOf(nBor) > 0) {
-                    const newG = distBetween(start.centerPoint, nBor.centerPoint);
+                    const newG = distBetween(start.point, nBor.point);
                     if (newG < nBor.gCost) {
                         nBor.gCost = newG;
                         nBor.parent = currentNode;
                     }
                 } else {
                     nBor.parent = currentNode;
-                    nBor.hCost = distBetween(end.centerPoint, nBor.centerPoint);
-                    nBor.gCost = distBetween(start.centerPoint, nBor.centerPoint);
+                    nBor.hCost = distBetween(end.point, nBor.point);
+                    nBor.gCost = distBetween(start.point, nBor.point);
                     // prevent changing the color of the end node.
                     if (!nBor.isEnd) nBor.setType(NodeTypes.possiblities);
                     open.push(nBor);
@@ -202,6 +233,95 @@ const search = () => {
             }
         }
         i++;
+    }
+}
+
+const dijkstra = () => {
+    let start: Node | undefined;
+    let end: Node | undefined;
+
+    const unexplored: Node[] = [];
+    // find start and end and cleanup from previous runs
+    for (let i = 0; i <= grid.length - 1; i++) {
+        for (let j = 0; j <= grid[i].length - 1; j++) {
+            const node = grid[i][j];
+            if (node.isStart) start = node;
+            if (node.isEnd) end = node;
+
+            if (!(node.isStart || node.isEnd || node.isWall)) {
+                node.setType(NodeTypes.empty);
+            }
+            node.hCost = Number.POSITIVE_INFINITY;
+            unexplored.push(node);
+        }
+    }
+
+    if (!start || !end) {
+        alert("Select a start and end to begin");
+        return;
+    }
+
+    start.hCost = 0;
+
+    while (unexplored.length > 0) {
+
+        const minHCost = Math.min(...unexplored.map(x => x.hCost));
+        const currentNode = unexplored.find(x => Math.abs(x.hCost - minHCost) < 0.1);
+
+        if (currentNode) {
+            const index = unexplored.indexOf(currentNode);
+            unexplored.splice(index, 1);
+
+            if (currentNode.isEnd) {
+                // TODO we found the end
+                const parents = getParents(currentNode);
+                for (let p = 0; p <= parents.length - 1; p++) {
+                    const node = parents[p];
+
+                    // set the nodes possibilty nodes to path
+                    // the other two nodes in the array are the start
+                    // and the end node
+                    if (node.isPossiblity) node.setType(NodeTypes.path);
+                }
+                break;
+            }
+
+            const neigbors = getNeiboringPoints(currentNode.point)
+
+            for (let i = 0; i <= neigbors.length - 1; i++) {
+                const point = neigbors[i];
+                const match = unexplored.find(x => x.isMatch(point));
+
+                if (match && match.traversable) {
+                    const newDist = currentNode.hCost + distBetween(currentNode.point, match.point);
+                    if (newDist < match.hCost) {
+                        match.hCost = newDist;
+                        match.parent = currentNode;
+                    }
+                    if (!match.isEnd && !match.isStart) {
+                        match.setType(NodeTypes.possiblities);
+                    }
+                }
+
+            }
+        }
+    }
+
+
+}
+
+const search = () => {
+    const algo: algoTypes = parseInt(algorithmSelect.value);
+
+    switch (algo) {
+        case algoTypes.aStar:
+            aStar();
+            break;
+        case algoTypes.dijkstra:
+            dijkstra();
+            break;
+        default:
+            aStar();
     }
 }
 
@@ -231,7 +351,7 @@ canvas.addEventListener('mousedown', (event: MouseEvent) => {
     event.stopPropagation();
     event.preventDefault();
     isDragging = true;
-    nodeType = parseInt(select.value);
+    nodeType = parseInt(drawingToolSelect.value);
 });
 
 canvas.addEventListener('mouseup', (event: MouseEvent) => {

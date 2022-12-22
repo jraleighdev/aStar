@@ -17,7 +17,7 @@ export class Node {
         return this.gCost + this.hCost;
     }
 
-    get centerPoint(): Point {
+    get point(): Point {
         return { x: this.x, y: this.y }
     }
 
@@ -41,6 +41,7 @@ export class Node {
                 this.traversable = true;
                 this.hCost = 0;
                 this.gCost = 0;
+                this.parent = undefined;
                 break;
             case NodeTypes.hover:
                 this.hasValue = false;
@@ -49,6 +50,7 @@ export class Node {
             case NodeTypes.wall:
                 this.hasValue = true;
                 this.traversable = false;
+                this.parent = undefined;
                 break;
             case NodeTypes.start:
             case NodeTypes.end:
@@ -82,6 +84,10 @@ export class Node {
 
     get color(): string {
         return this.colorsMap()[this.type];
+    }
+
+    isMatch(point: Point) {
+        return Math.abs(this.point.x - point.x) < 0.1 && Math.abs(this.point.y - point.y) < 0.1;
     }
 
     colorsMap(): Record<NodeTypes, string> {
