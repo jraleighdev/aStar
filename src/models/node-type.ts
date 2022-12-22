@@ -1,4 +1,4 @@
-export enum SquareTypes {
+export enum NodeTypes {
     start = 0,
     end = 1,
     wall = 2,
