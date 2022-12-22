@@ -251,6 +251,9 @@ const dijkstra = () => {
             if (!(node.isStart || node.isEnd || node.isWall)) {
                 node.setType(NodeTypes.empty);
             }
+
+            // set each distance node to positive infinity 
+            // makes determining initial distance simple
             node.hCost = Number.POSITIVE_INFINITY;
             unexplored.push(node);
         }
@@ -261,10 +264,12 @@ const dijkstra = () => {
         return;
     }
 
+    // important first node set to 0
     start.hCost = 0;
 
     while (unexplored.length > 0) {
 
+        // find the node with the min distance
         const minHCost = Math.min(...unexplored.map(x => x.hCost));
         const currentNode = unexplored.find(x => Math.abs(x.hCost - minHCost) < 0.1);
 
@@ -272,8 +277,14 @@ const dijkstra = () => {
             const index = unexplored.indexOf(currentNode);
             unexplored.splice(index, 1);
 
+            // we found the end node exit
+            // and mark the path
             if (currentNode.isEnd) {
-                // TODO we found the end
+
+                // recurse the current node and get the parents
+                // each node in parents represents the path
+                // Goes from the end node back the start node
+                // |S| <- |P| <- |P| <- |E|
                 const parents = getParents(currentNode);
                 for (let p = 0; p <= parents.length - 1; p++) {
                     const node = parents[p];
@@ -286,18 +297,26 @@ const dijkstra = () => {
                 break;
             }
 
+            // get the neighbors of this node
+            //  [N][N][N]
+            //  [N]{C}[N]
+            //  [N][N][N]
             const neigbors = getNeiboringPoints(currentNode.point)
-
             for (let i = 0; i <= neigbors.length - 1; i++) {
                 const point = neigbors[i];
+                // check if one of points exist in the unexplored list
                 const match = unexplored.find(x => x.isMatch(point));
-
                 if (match && match.traversable) {
+                    // get the distance between current node and the neighbor
+                    // if new distance is less than neigbors current distance
+                    // then update neighbor to new dist and assign current to its parent
                     const newDist = currentNode.hCost + distBetween(currentNode.point, match.point);
                     if (newDist < match.hCost) {
                         match.hCost = newDist;
                         match.parent = currentNode;
                     }
+
+                    // mark the explored nodes
                     if (!match.isEnd && !match.isStart) {
                         match.setType(NodeTypes.possiblities);
                     }
