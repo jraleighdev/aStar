@@ -106,8 +106,11 @@ const getParents = (node: Node): Node[] => {
 }
 
 const search = () => {
+
     let start: Node | undefined;
     let end: Node | undefined;
+
+    // find start and end and cleanup from previous runs
     for (let i = 0; i <= grid.length - 1; i++) {
         for (let j = 0; j <= grid[i].length - 1; j++) {
             const node = grid[i][j];
@@ -117,8 +120,6 @@ const search = () => {
             if (!(node.isStart || node.isEnd || node.isWall)) {
                 node.setType(NodeTypes.empty);
             }
-            node.hCost = 0;
-            node.gCost = 0;
         }
     }
 
@@ -127,32 +128,63 @@ const search = () => {
         return;
     }
 
-    let i = 0;
+    
     const open: Node[] = [];
     const closed: Node[] = [];
+    
+    // start by adding the first node
     open.push(start);
+
+    let i = 0;
     while (i < 10000) {
+
+        // get the node with the lowest fcost is the current 
+        // shortest distance to the end node
         const currentNode = findNodeWithLowestFCost(open);
         if (!currentNode) break;
+
+        // take the current node and add it the closed list
+        // the closed won't be searched again
         const indexOfCurrent = open.indexOf(currentNode);
         open.splice(indexOfCurrent, 1);
         closed.push(currentNode);
 
+        // current node is the end node end the loop
         if (closed.indexOf(end) > 0) {
+
+            // TODO might be able to remove this 
             currentNode.setType(NodeTypes.end);
+
+            // recurse the current node and get the parents
+            // each node in parents represents the path
+            // Goes from the end node back the start node
+            // |S| <- |P| <- |P| <- |E|
             const parents = getParents(currentNode);
             for (let p = 0; p <= parents.length - 1; p++) {
                 const node = parents[p];
+
+                // set the nodes possibilty nodes to path
+                // the other two nodes in the array are the start
+                // and the end node
                 if (node.isPossiblity) node.setType(NodeTypes.path);
             }
             break;
         }
         
+        // get the neighbors of this node
+        //  [N][N][N]
+        //  [N]{C}[N]
+        //  [N][N][N]
         const neighbors = findNeigbors(currentNode);
 
         for (let n = 0; n <= neighbors.length - 1; n++) {
             const nBor = neighbors[n];
             if (nBor.traversable && closed.indexOf(nBor) < 0) {
+
+                // if neighbor is already in the open list
+                // check gCost of the node and see if it is lower
+                // if lower then update the gCost to the lower value
+                // set the parent of the neigbor to the current node
                 if (open.indexOf(nBor) > 0) {
                     const newG = distBetween(start.centerPoint, nBor.centerPoint);
                     if (newG < nBor.gCost) {
@@ -163,6 +195,7 @@ const search = () => {
                     nBor.parent = currentNode;
                     nBor.hCost = distBetween(end.centerPoint, nBor.centerPoint);
                     nBor.gCost = distBetween(start.centerPoint, nBor.centerPoint);
+                    // prevent changing the color of the end node.
                     if (!nBor.isEnd) nBor.setType(NodeTypes.possiblities);
                     open.push(nBor);
                 }
@@ -226,7 +259,7 @@ canvas.addEventListener('click', (event: MouseEvent) => {
     if (searchActive) search();
 });
 
-clearButton.addEventListener('click', (event: MouseEvent) => {
+clearButton.addEventListener('click', () => {
     searchActive = false;
     for (let i = 0; i <= grid.length - 1; i++) {
         const row = grid[i];
@@ -237,7 +270,7 @@ clearButton.addEventListener('click', (event: MouseEvent) => {
     }
 });
 
-startButton.addEventListener('click', (event: MouseEvent) => {
+startButton.addEventListener('click', () => {
     searchActive = true;
     search();
 })
