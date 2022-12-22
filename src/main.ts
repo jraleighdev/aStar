@@ -273,60 +273,60 @@ const dijkstra = () => {
         const minHCost = Math.min(...unexplored.map(x => x.hCost));
         const currentNode = unexplored.find(x => Math.abs(x.hCost - minHCost) < 0.1);
 
-        if (currentNode) {
-            const index = unexplored.indexOf(currentNode);
-            unexplored.splice(index, 1);
+        // if current node is undefined 
+        // then we are blocked
+        if (!currentNode) break;
 
-            // we found the end node exit
-            // and mark the path
-            if (currentNode.isEnd) {
+        const index = unexplored.indexOf(currentNode);
+        unexplored.splice(index, 1);
 
-                // recurse the current node and get the parents
-                // each node in parents represents the path
-                // Goes from the end node back the start node
-                // |S| <- |P| <- |P| <- |E|
-                const parents = getParents(currentNode);
-                for (let p = 0; p <= parents.length - 1; p++) {
-                    const node = parents[p];
+        // we found the end node exit
+        // and mark the path
+        if (currentNode.isEnd) {
 
-                    // set the nodes possibilty nodes to path
-                    // the other two nodes in the array are the start
-                    // and the end node
-                    if (node.isPossiblity) node.setType(NodeTypes.path);
-                }
-                break;
+            // recurse the current node and get the parents
+            // each node in parents represents the path
+            // Goes from the end node back the start node
+            // |S| <- |P| <- |P| <- |E|
+            const parents = getParents(currentNode);
+            for (let p = 0; p <= parents.length - 1; p++) {
+                const node = parents[p];
+
+                // set the nodes possibilty nodes to path
+                // the other two nodes in the array are the start
+                // and the end node
+                if (node.isPossiblity) node.setType(NodeTypes.path);
             }
+            break;
+        }
 
-            // get the neighbors of this node
-            //  [N][N][N]
-            //  [N]{C}[N]
-            //  [N][N][N]
-            const neigbors = getNeiboringPoints(currentNode.point)
-            for (let i = 0; i <= neigbors.length - 1; i++) {
-                const point = neigbors[i];
-                // check if one of points exist in the unexplored list
-                const match = unexplored.find(x => x.isMatch(point));
-                if (match && match.traversable) {
-                    // get the distance between current node and the neighbor
-                    // if new distance is less than neigbors current distance
-                    // then update neighbor to new dist and assign current to its parent
-                    const newDist = currentNode.hCost + distBetween(currentNode.point, match.point);
-                    if (newDist < match.hCost) {
-                        match.hCost = newDist;
-                        match.parent = currentNode;
-                    }
-
-                    // mark the explored nodes
-                    if (!match.isEnd && !match.isStart) {
-                        match.setType(NodeTypes.possiblities);
-                    }
+        // get the neighbors of this node
+        //  [N][N][N]
+        //  [N]{C}[N]
+        //  [N][N][N]
+        const neigbors = getNeiboringPoints(currentNode.point)
+        for (let i = 0; i <= neigbors.length - 1; i++) {
+            const point = neigbors[i];
+            // check if one of points exist in the unexplored list
+            const match = unexplored.find(x => x.isMatch(point));
+            if (match && match.traversable) {
+                // get the distance between current node and the neighbor
+                // if new distance is less than neigbors current distance
+                // then update neighbor to new dist and assign current to its parent
+                const newDist = currentNode.hCost + distBetween(currentNode.point, match.point);
+                if (newDist < match.hCost) {
+                    match.hCost = newDist;
+                    match.parent = currentNode;
                 }
 
+                // mark the explored nodes
+                if (!match.isEnd && !match.isStart) {
+                    match.setType(NodeTypes.possiblities);
+                }
+                // if no match is found we are blocked
             }
         }
     }
-
-
 }
 
 const search = () => {
