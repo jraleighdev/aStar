@@ -31,17 +31,17 @@ const draw = () => {
     for (let i = 0; i <= grid.length - 1; i++) {
         const row = grid[i];
         for (let j = 0; j <= row.length - 1; j++) {
-            const square = row[j];
-            ctx.fillStyle = square.color;
-            ctx.fillRect(square.x * dim + offset / 2, square.y * dim + offset / 2, square.dim - offset, square.dim - offset)
+            const node = row[j];
+            ctx.fillStyle = node.color;
+            ctx.fillRect(node.x * dim + offset / 2, node.y * dim + offset / 2, node.dim - offset, node.dim - offset)
             ctx.strokeStyle = 'black';
-            ctx.strokeRect(square.x * dim, square.y * dim, square.dim, square.dim);
+            ctx.strokeRect(node.x * dim, node.y * dim, node.dim, node.dim);
             ctx.font = '16px Arial';
-            ctx.strokeText(square.fCost.toString(), square.x * dim + dim / 2.5, square.y * dim + dim / 1.2)
+            ctx.strokeText(node.fCost.toString(), node.x * dim + dim / 2.5, node.y * dim + dim / 1.2)
             ctx.font = '16px Arial'
-            ctx.strokeText(square.gCost.toString(), square.x * dim + dim / 7, square.y * dim + dim / 4)
+            ctx.strokeText(node.gCost.toString(), node.x * dim + dim / 7, node.y * dim + dim / 4)
             ctx.font = '16px Arial'
-            ctx.strokeText(square.hCost.toString(), square.x * dim + dim / 1.6, square.y * dim + dim / 4)
+            ctx.strokeText(node.hCost.toString(), node.x * dim + dim / 1.6, node.y * dim + dim / 4)
         }
     }
 }
@@ -95,21 +95,30 @@ const findNodeWithLowestFCost = (nodes: Node[]): Node | undefined => {
     return nodes.find(x => Math.abs(minFCost - x.fCost) < .1);
 }
 
+const getParents = (node: Node): Node[] => {
+    let currentParent = node.parent;
+    const nodes: Node[] = [];
+    while (currentParent) {
+        nodes.push(currentParent);
+        currentParent = currentParent.parent;
+    }
+    return nodes;
+}
 
 const search = () => {
     let start: Node | undefined;
     let end: Node | undefined;
     for (let i = 0; i <= grid.length - 1; i++) {
         for (let j = 0; j <= grid[i].length - 1; j++) {
-            const square = grid[i][j];
-            if (square.isStart) start = square;
-            if (square.isEnd) end = square;
+            const node = grid[i][j];
+            if (node.isStart) start = node;
+            if (node.isEnd) end = node;
 
-            if (!(square.isStart || square.isEnd || square.isWall)) {
-                square.setType(NodeTypes.empty);
+            if (!(node.isStart || node.isEnd || node.isWall)) {
+                node.setType(NodeTypes.empty);
             }
-            square.hCost = 0;
-            square.gCost = 0;
+            node.hCost = 0;
+            node.gCost = 0;
         }
     }
 
@@ -122,7 +131,7 @@ const search = () => {
     const open: Node[] = [];
     const closed: Node[] = [];
     open.push(start);
-    while (i < 1000) {
+    while (i < 10000) {
         const currentNode = findNodeWithLowestFCost(open);
         if (!currentNode) break;
         const indexOfCurrent = open.indexOf(currentNode);
@@ -130,8 +139,12 @@ const search = () => {
         closed.push(currentNode);
 
         if (closed.indexOf(end) > 0) {
-            console.log('yipee!')
             currentNode.setType(NodeTypes.end);
+            const parents = getParents(currentNode);
+            for (let p = 0; p <= parents.length - 1; p++) {
+                const node = parents[p];
+                if (node.isPossiblity) node.setType(NodeTypes.path);
+            }
             break;
         }
         
@@ -142,8 +155,10 @@ const search = () => {
             if (nBor.traversable && closed.indexOf(nBor) < 0) {
                 if (open.indexOf(nBor) > 0) {
                     const newG = distBetween(start.centerPoint, nBor.centerPoint);
-                    nBor.gCost = newG < nBor.gCost ? newG : nBor.gCost;
-                    nBor.parent = currentNode;
+                    if (newG < nBor.gCost) {
+                        nBor.gCost = newG;
+                        nBor.parent = currentNode;
+                    }
                 } else {
                     nBor.parent = currentNode;
                     nBor.hCost = distBetween(end.centerPoint, nBor.centerPoint);
@@ -155,29 +170,25 @@ const search = () => {
         }
         i++;
     }
-    for (let j = 0; j <= closed.length - 1; j++) {
-        const node = closed[j];
-        if (node.isPossiblity) node.setType(NodeTypes.path);
-    }
 }
 
 let searchActive = false;
 let isDragging = false;
-let squareType: NodeTypes = NodeTypes.empty;
+let nodeType: NodeTypes = NodeTypes.empty;
 
 canvas.addEventListener('mousemove', (event: MouseEvent) => {
     for (let i = 0; i <= grid.length - 1; i++) {
         const row = grid[i];
         for (let j = 0; j <= row.length - 1; j++) {
-            const square = row[j];
-            if (ctx.isPointInPath(square.path, event.offsetX, event.offsetY)) {
-                if (isDragging && (squareType === NodeTypes.empty || squareType === NodeTypes.wall)) {
-                    square.setType(squareType);
-                } else if (!isDragging && square.type == NodeTypes.empty) {
-                    square.setType(NodeTypes.hover);
+            const node = row[j];
+            if (ctx.isPointInPath(node.path, event.offsetX, event.offsetY)) {
+                if (isDragging && (nodeType === NodeTypes.empty || nodeType === NodeTypes.wall)) {
+                    node.setType(nodeType);
+                } else if (!isDragging && node.type == NodeTypes.empty) {
+                    node.setType(NodeTypes.hover);
                 }
-            } else if (!square.hasValue) {
-                square.setType(NodeTypes.empty);
+            } else if (!node.hasValue) {
+                node.setType(NodeTypes.empty);
             }
         }
     }
@@ -187,7 +198,7 @@ canvas.addEventListener('mousedown', (event: MouseEvent) => {
     event.stopPropagation();
     event.preventDefault();
     isDragging = true;
-    squareType = parseInt(select.value);
+    nodeType = parseInt(select.value);
 });
 
 canvas.addEventListener('mouseup', (event: MouseEvent) => {
@@ -202,13 +213,13 @@ canvas.addEventListener('click', (event: MouseEvent) => {
     for (let i = 0; i <= grid.length - 1; i++) {
         const row = grid[i];
         for (let j = 0; j <= row.length - 1; j++) {
-            const square = row[j];
-            if ((squareType === NodeTypes.start && square.type === NodeTypes.start)
-                || (squareType === NodeTypes.end && square.type === NodeTypes.end)) {
-                square.setType(NodeTypes.empty);
+            const node = row[j];
+            if ((nodeType === NodeTypes.start && node.type === NodeTypes.start)
+                || (nodeType === NodeTypes.end && node.type === NodeTypes.end)) {
+                node.setType(NodeTypes.empty);
             }
-            if (ctx.isPointInPath(square.path, event.offsetX, event.offsetY)) {
-                square.setType(squareType);
+            if (ctx.isPointInPath(node.path, event.offsetX, event.offsetY)) {
+                node.setType(nodeType);
             }
         }
     }
@@ -220,8 +231,8 @@ clearButton.addEventListener('click', (event: MouseEvent) => {
     for (let i = 0; i <= grid.length - 1; i++) {
         const row = grid[i];
         for (let j = 0; j <= row.length - 1; j++) {
-            const square = row[j];
-            square.setType(NodeTypes.empty);
+            const node = row[j];
+            node.setType(NodeTypes.empty);
         }
     }
 });
