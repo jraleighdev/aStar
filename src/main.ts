@@ -31,6 +31,7 @@ const grid: Node[][] = createGrid();
 const draw = () => {
     const offset = 8;
     ctx.fillStyle = '#e9f2fd';
+    const font = '16px Arial';
     ctx.fillRect(0, 0, columns * dim, rows * dim);
     for (let i = 0; i <= grid.length - 1; i++) {
         const row = grid[i];
@@ -43,16 +44,14 @@ const draw = () => {
             const algo: algoTypes = parseInt(algorithmSelect.value);
             switch (algo) {
                 case algoTypes.aStar:
-                    ctx.font = '16px Arial';
+                    ctx.font = font;
                     ctx.strokeText(node.fCost.toString(), node.x * dim + dim / 2.5, node.y * dim + dim / 1.2)
-                    ctx.font = '16px Arial'
                     ctx.strokeText(node.gCost.toString(), node.x * dim + dim / 7, node.y * dim + dim / 4)
-                    ctx.font = '16px Arial'
                     ctx.strokeText(node.hCost.toString(), node.x * dim + dim / 1.6, node.y * dim + dim / 4)
                     break;
                 case algoTypes.dijkstra:
                 default:
-                    ctx.font = '16px Arial'
+                    ctx.font = font;
                     ctx.strokeText(Number.isFinite(node.hCost) ? node.hCost.toString() : '0', node.x * dim + dim / 2.5, node.y * dim + dim / 2)
                     break;
             }
@@ -95,7 +94,6 @@ const getNeigboringPoints = (point: Point): Point[] => [
         /*bottom*/      { x: point.x, y: point.y + 1 },
         /*leftBottom*/  { x: point.x - 1, y: point.y + 1 }
 ];
-
 
 const findNeigbors = (check: Node): Node[] => {
     const points = getNeigboringPoints({ x: check.x , y: check.y });
@@ -405,7 +403,13 @@ clearButton.addEventListener('click', () => {
 startButton.addEventListener('click', () => {
     searchActive = true;
     search();
-})
+});
+
+algorithmSelect.addEventListener('change', () => {
+    if (searchActive) {
+        search();
+    }
+});
 
 
 
