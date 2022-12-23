@@ -30,9 +30,11 @@ const grid: Node[][] = createGrid();
 
 const draw = () => {
     const offset = 8;
+    ctx.fillStyle = '#e9f2fd';
+    ctx.fillRect(0, 0, columns * dim, rows * dim);
     for (let i = 0; i <= grid.length - 1; i++) {
         const row = grid[i];
-        for (let j = 0; j <= row.length - 1; j++) {
+        for (let j = 0; j <= row.length - 1; j++) {         
             const node = row[j];
             ctx.fillStyle = node.color;
             ctx.fillRect(node.x * dim + offset / 2, node.y * dim + offset / 2, node.dim - offset, node.dim - offset)
@@ -83,7 +85,7 @@ const validNode = (p: Point): boolean => {
     return p.x >= 0 && p.x <= columns - 1 && p.y >= 0 && p.y <= rows - 1;
 }
 
-const getNeiboringPoints = (point: Point): Point[] => [
+const getNeigboringPoints = (point: Point): Point[] => [
         /*leftCenter*/  { x: point.x - 1, y: point.y },
         /*leftUpper*/   { x: point.x - 1, y: point.y - 1 },
         /*upper*/       { x: point.x, y: point.y - 1 },
@@ -92,24 +94,11 @@ const getNeiboringPoints = (point: Point): Point[] => [
         /*rightBottom*/ { x: point.x + 1, y: point.y + 1 },
         /*bottom*/      { x: point.x, y: point.y + 1 },
         /*leftBottom*/  { x: point.x - 1, y: point.y + 1 }
-]
+];
 
 
 const findNeigbors = (check: Node): Node[] => {
-    const x = check.x;
-    const y = check.y;
-
-    const points: Point[] = [
-      /*leftCenter*/  { x: x - 1, y },
-      /*leftUpper*/   { x: x - 1, y: y - 1 },
-      /*upper*/       { x, y: y - 1 },
-      /*rightUpper*/  { x: x + 1, y: y - 1 },
-      /*right*/       { x: x + 1, y },
-      /*rightBottom*/ { x: x + 1, y: y + 1 },
-      /*bottom*/      { x, y: y + 1 },
-      /*leftBottom*/  { x: x - 1, y: y + 1 }
-    ]
-
+    const points = getNeigboringPoints({ x: check.x , y: check.y });
     const validPoints = points.filter(p => validNode(p));
     const actualNodes = validPoints.map(p => grid[p.y][p.x]);
     return actualNodes;
@@ -117,7 +106,12 @@ const findNeigbors = (check: Node): Node[] => {
 
 const findNodeWithLowestFCost = (nodes: Node[]): Node | undefined => {
     const minFCost = Math.min(...nodes.map(x => x.fCost));
-    return nodes.find(x => Math.abs(minFCost - x.fCost) < .1);
+    return nodes.find(x => Math.abs(minFCost - x.fCost) < 0.1);
+}
+
+const findNodeWithLowestHCost = (nodes: Node[]): Node | undefined => {
+    const minHCost = Math.min(...nodes.map(x => x.hCost));
+    return nodes.find(x => Math.abs(minHCost - x.hCost) < 0.1);
 }
 
 const getParents = (node: Node): Node[] => {
@@ -270,8 +264,7 @@ const dijkstra = () => {
     while (unexplored.length > 0) {
 
         // find the node with the min distance
-        const minHCost = Math.min(...unexplored.map(x => x.hCost));
-        const currentNode = unexplored.find(x => Math.abs(x.hCost - minHCost) < 0.1);
+        const currentNode = findNodeWithLowestHCost(unexplored);
 
         // if current node is undefined 
         // then we are blocked
@@ -304,7 +297,7 @@ const dijkstra = () => {
         //  [N][N][N]
         //  [N]{C}[N]
         //  [N][N][N]
-        const neigbors = getNeiboringPoints(currentNode.point)
+        const neigbors = getNeigboringPoints(currentNode.point)
         for (let i = 0; i <= neigbors.length - 1; i++) {
             const point = neigbors[i];
             // check if one of points exist in the unexplored list

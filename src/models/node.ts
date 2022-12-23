@@ -4,7 +4,9 @@ import { NodeTypes } from "./node-type";
 export class Node {
 
     public path: Path2D;
+
     public hasValue = false;
+
     public traversable = false;
 
     // distance between node and start
@@ -21,6 +23,7 @@ export class Node {
         return { x: this.x, y: this.y }
     }
 
+    // 
     public parent: Node | undefined;
 
     constructor(
@@ -60,10 +63,6 @@ export class Node {
                 this.traversable = true;
                 break;
         }
-    }
-
-    public setIsPossible(): void {
-        this.setType(NodeTypes.possiblities);
     }
 
     get isStart(): boolean {
